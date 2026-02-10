@@ -104,7 +104,7 @@ def cli(args_list=None):
     if args_list == None:
         args_list = sys.argv[1:]
     parser = get_parser()
-    args = parser.parse_args(["--help"] if len(args_list) == 0 else sys.argv[1:])
+    args = parser.parse_args(["--help"] if len(args_list) == 0 else args_list)
 
     # Convert --format to media type
     try:

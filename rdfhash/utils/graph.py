@@ -5,6 +5,7 @@ import mimetypes
 import oxrdflib
 import rdflib
 import pyoxigraph
+from pyoxigraph import Store
 
 from rdfhash.utils import triple_media_types, get_rdf_media_type, rdf_alias_to_media_type, rdf_media_types
 from rdfhash.utils.hash import hash_string
@@ -272,8 +273,7 @@ class OxiGraph(__Graph__):
             return False
 
     def _parse(self, data, format):
-        input = io.StringIO(data)
-        self.graph.load(input, self._get_rdf_media_type(format))
+        self.graph.load(input=data, format=self._get_rdf_media_type(format))
         return self
 
     def _parse_file(self, path, format):
