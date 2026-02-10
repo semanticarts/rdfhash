@@ -4,10 +4,39 @@
 
 ## Installation
 
+### Using pip
+
 You can install `rdfhash` using `pip`, a package manager for Python. Ensure [`python`](https://www.python.org/downloads/) and [`pip`](https://pip.pypa.io/en/stable/installation/#installation) are properly installed on your system, then run the following command:
 
 ```bash
 pip install rdfhash
+
+# Test the installation
+rdfhash --help
+```
+
+### Using UV (Recommended for Development)
+
+If you're working with this repository for development or want faster dependency management, you can use [UV](https://docs.astral.sh/uv/), a fast Python package installer and resolver:
+
+```bash
+# Install UV if you haven't already
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Install the package and its dependencies
+uv pip install -e .
+
+# For development with additional dev dependencies
+uv pip install -e ".[dev]"
+
+# Or use UV to manage the project directly
+uv sync
+
+# Test the installation
+uv run rdfhash --help
+
+# To run pytest
+uv run pytest
 ```
 
 ## Usage

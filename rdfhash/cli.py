@@ -4,13 +4,16 @@ import logging
 
 from rdfhash.main import hash_subjects, reverse_hash_subjects
 from rdfhash.logger import logger
+from rdfhash.utils import rdf_media_types, get_rdf_media_type
 from rdfhash.utils.hash import hash_types
-from rdfhash.utils.graph import mime, file_ext, graph_types
+from rdfhash.utils.graph import graph_types
 
 
-def get_parser():
+def get_parser() -> argparse.ArgumentParser:
     """Return argument parser for command 'hash_subjects'.
-    Returns: argparse.ArgumentParser: _description_
+    
+    Returns: 
+        argparse.ArgumentParser: Argument parser for command 'hash_subjects'.
     """
     parser = argparse.ArgumentParser(
         description=(
@@ -20,18 +23,12 @@ def get_parser():
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
 
-    parser.add_argument(
-        "data",
-        nargs="+",
-        help="Input RDF string or file path.\nSupported file formats: ['."
-        + "', '.".join(file_ext.keys())
-        + "']",
-    )
+    parser.add_argument("data", nargs="+", help="Input RDF string or file path.")
 
     parser.add_argument(
         "-f",
         "--format",
-        help="Input format.\nSupports: ['" + "', '".join(mime.keys()) + "']",
+        help="Input format.\nSupports: ['" + "', '".join(rdf_media_types) + "']",
         default="text/turtle",
     )
 
@@ -48,7 +45,7 @@ def get_parser():
         "-a",
         "--accept",
         default="text/turtle",
-        help=f"Output accept format.\nSupports: ['" + "', '".join(mime.keys()) + "']",
+        help="Output format.\nSupports: ['" + "', '".join(rdf_media_types) + "']",
     )
 
     parser.add_argument(
@@ -107,29 +104,24 @@ def cli(args_list=None):
     if args_list == None:
         args_list = sys.argv[1:]
     parser = get_parser()
-    args = parser.parse_args(["--help"] if len(args_list) == 0 else sys.argv[1:])
+    args = parser.parse_args(["--help"] if len(args_list) == 0 else args_list)
 
-    if args.format in mime:
-        args.format = mime[args.format]
-    elif args.format in file_ext:
-        args.format = file_ext[args.format]
-    elif args.format not in mime.values():
-        parser.print_usage()
-        print(f"\nERROR: Unsupported format: {args.format}")
+    # Convert --format to media type
+    try:
+        args.format = get_rdf_media_type(args.format)
+    except ValueError as e:
+        logger.error(
+            f"Unsupported --format value.\n{e}"
+        )
         sys.exit(1)
 
-    if args.accept in mime:
-        args.accept = mime[args.accept]
-    elif args.accept in file_ext:
-        args.accept = file_ext[args.accept]
-    elif args.accept not in mime.values():
-        parser.print_usage()
-        print(f"\nERROR: Unsupported accept format: {args.accept}")
-        sys.exit(1)
-
-    if args.data == None:
-        parser.print_usage()
-        print("\nERROR: The following arguments are required: -d/--data")
+    # Convert --accept to media type
+    try:
+        args.accept = get_rdf_media_type(args.accept)
+    except ValueError as e:
+        logger.error(
+            f"Unsupported --accept value.\n{e}"
+        )
         sys.exit(1)
 
     if args.debug:

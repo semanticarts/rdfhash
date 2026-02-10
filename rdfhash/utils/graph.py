@@ -1,55 +1,25 @@
 import os.path
 import io
+import mimetypes
 
 import oxrdflib
 import rdflib
 import pyoxigraph
+from pyoxigraph import Store
 
+from rdfhash.utils import triple_media_types, get_rdf_media_type, rdf_alias_to_media_type, rdf_media_types
 from rdfhash.utils.hash import hash_string
-
-mime = {
-    "trig": "application/trig",
-    "nq": "application/n-quads",
-    "nquads": "application/n-quads",
-    "ntriples": "application/n-triples",
-    "nt": "application/n-triples",
-    "turtle": "text/turtle",
-    "ttl": "text/turtle",
-    "rdf": "application/rdf+xml",
-    "xml": "application/rdf+xml",
-    "n3": "text/n3",
-}
-
-file_ext = {
-    "nt": "application/n-triples",
-    "nq": "application/n-quads",
-    "ttl": "text/turtle",
-    "trig": "application/trig",
-    "n3": "text/n3",
-    "xml": "application/rdf+xml",
-    "rdf": "application/rdf+xml",
-    "n3": "text/n3",
-}
 
 # _____________________________________________________________________________ #
 
 
 class __Graph__:
-    """Interoperable graph class, based on rdflib.ConjunctiveGraph.
-
-    Raises:
-        TypeError: _description_
-        NotImplementedError: _description_
-        NotImplementedError: _description_
-
-    Returns:
-        _type_: _description_
-    """
+    """Interoperable graph class, based on rdflib.Dataset."""
 
     graph = None
 
     library_class = rdflib
-    graph_class = rdflib.ConjunctiveGraph
+    graph_class = rdflib.Dataset
 
     NamedNode = rdflib.URIRef
     BlankNode = rdflib.BNode
@@ -61,12 +31,16 @@ class __Graph__:
     )
 
     xsd_string = rdflib.URIRef("http://www.w3.org/2001/XMLSchema#string")
-    
+
     xsd_boolean = rdflib.URIRef("http://www.w3.org/2001/XMLSchema#boolean")
 
-    default_format = mime["trig"]
+    default_format = rdf_alias_to_media_type["trig"]
 
     supports_named_graphs = True
+
+    @staticmethod
+    def _get_rdf_media_type(format: str):
+        return get_rdf_media_type(format)
 
     def __init__(self, data=None, format=None, max_path=2048):
         """Initialize graph object
@@ -121,12 +95,10 @@ class __Graph__:
 
     def parse_file(self, file_path, format=None):
         if format == None:
-            ext = os.path.splitext(file_path)[1][1:]
-            if ext not in file_ext:
+            format = mimetypes.guess_type(file_path)[0]
+            if format not in rdf_media_types:
                 raise ValueError("File specified not recognized as a valid RDF file. ")
-            self._parse_file(file_path, format=file_ext[ext])
-        else:
-            self._parse_file(file_path, format=format)
+        self._parse_file(file_path, format=format)
         return self
 
     def serialize(self, path=None, format=None):
@@ -250,20 +222,20 @@ class RdfLibGraph(__Graph__):
 
 class OxRdfLibGraph(RdfLibGraph):
     library_class = oxrdflib
-    graph_class = oxrdflib.Graph
+    graph_class = None
 
     NamedNode = rdflib.URIRef
     BlankNode = rdflib.BNode
     Literal = rdflib.Literal
     Variable = rdflib.Variable
 
-    default_format = mime["trig"]
+    default_format = rdf_alias_to_media_type["trig"]
 
     supports_named_graphs = True
     """Inheriting methods from RdfLibGraph"""
 
     def __init__(self, data=None, format=None, max_path=2048):
-        self.graph = rdflib.ConjunctiveGraph(store="Oxigraph")
+        self.graph = rdflib.Dataset(store="Oxigraph")
         super().__init__(data, format, max_path)
 
 
@@ -273,7 +245,7 @@ class OxRdfLibGraph(RdfLibGraph):
 class OxiGraph(__Graph__):
     graph_class = pyoxigraph.Store
 
-    default_format = mime["trig"]
+    default_format = rdf_alias_to_media_type["trig"]
 
     BlankNode = pyoxigraph.BlankNode
     NamedNode = pyoxigraph.NamedNode
@@ -287,6 +259,11 @@ class OxiGraph(__Graph__):
 
     supports_named_graphs = True
 
+    @staticmethod
+    def _get_rdf_media_type(format_str):
+        """Convert media type string to pyoxigraph.RdfFormat object"""
+        return pyoxigraph.RdfFormat.from_media_type(get_rdf_media_type(format_str))
+
     def __contains__(self, item):
         iter = self.quads(item)
         try:
@@ -296,23 +273,28 @@ class OxiGraph(__Graph__):
             return False
 
     def _parse(self, data, format):
-        input = io.StringIO(data)
-        self.graph.load(input, format)
+        self.graph.load(input=data, format=self._get_rdf_media_type(format))
         return self
 
     def _parse_file(self, path, format):
-        self.graph.load(path, format)
+        self.graph.load(path=path, format=self._get_rdf_media_type(format))
         return self
 
     def serialize(self, path=None, format=None):
         if format == None:
             format = self.default_format
+
+        rdf_format = self._get_rdf_media_type(format)
+
+        # For triple-only formats like Turtle, we need to specify from_graph
+        from_graph = pyoxigraph.DefaultGraph() if format in triple_media_types else None
+
         if path:
-            self.graph.dump(path, mime_type=format)
+            self.graph.dump(path, format=rdf_format, from_graph=from_graph)
             return True
         else:
             with io.BytesIO() as buffer:
-                self.graph.dump(buffer, mime_type=format)
+                self.graph.dump(buffer, format=rdf_format, from_graph=from_graph)
                 buffer.seek(0)
                 res = buffer.read()
             return res.decode("utf-8")
@@ -361,7 +343,6 @@ graph_types = {
 
 graph_classes = {
     rdflib.Graph: RdfLibGraph,
-    oxrdflib.Graph: OxRdfLibGraph,
     pyoxigraph.Store: OxiGraph,
 }
 

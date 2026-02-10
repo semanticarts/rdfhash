@@ -1,6 +1,40 @@
 [build-system]
-requires = ["setuptools"]
-build-backend = "setuptools.build_meta"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "rdfhash"
+version = "0.4.7"
+description = "De-duplicate RDF triples w/ a SPARQL query. Subjects taken from SELECT are replaced by the hash of their triples '{predicate} {object}.\n' pairs sorted."
+readme = "README.md"
+license = {file = "LICENSE.txt"}
+authors = [
+    {name = "Neil Graham", email = "grahamneiln@gmail.com"}
+]
+requires-python = ">=3.10"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+    "rdflib",
+    "oxrdflib",
+    "pyoxigraph",
+]
+
+[project.urls]
+Homepage = "https://github.com/semanticarts/rdfhash"
+Repository = "https://github.com/semanticarts/rdfhash"
+
+[project.scripts]
+rdfhash = "rdfhash.cli:cli"
+
+[dependency-groups]
+dev = [
+    "pytest",
+    "termcolor",
+]
 
 [tool.pytest.ini_options]
 log_cli = true
