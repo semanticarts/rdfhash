@@ -1,7 +1,6 @@
 import difflib
 
 from rdflib import Graph, Literal, XSD, BNode
-import oxrdflib
 from termcolor import colored
 
 from rdfhash.utils.graph import get_graph, __Graph__

@@ -1,51 +1,19 @@
 import os.path
 import io
+import mimetypes
 
 import oxrdflib
 import rdflib
 import pyoxigraph
 
-from rdfhash.utils import triple_mime_types, get_rdf_mime_type
+from rdfhash.utils import triple_media_types, get_rdf_media_type, rdf_alias_to_media_type, rdf_media_types
 from rdfhash.utils.hash import hash_string
-
-mime = {
-    "trig": "application/trig",
-    "nq": "application/n-quads",
-    "nquads": "application/n-quads",
-    "ntriples": "application/n-triples",
-    "nt": "application/n-triples",
-    "turtle": "text/turtle",
-    "ttl": "text/turtle",
-    "rdf": "application/rdf+xml",
-    "xml": "application/rdf+xml",
-    "n3": "text/n3",
-}
-
-file_ext = {
-    "nt": "application/n-triples",
-    "nq": "application/n-quads",
-    "ttl": "text/turtle",
-    "trig": "application/trig",
-    "n3": "text/n3",
-    "xml": "application/rdf+xml",
-    "rdf": "application/rdf+xml",
-    "n3": "text/n3",
-}
 
 # _____________________________________________________________________________ #
 
 
 class __Graph__:
-    """Interoperable graph class, based on rdflib.Dataset.
-
-    Raises:
-        TypeError: _description_
-        NotImplementedError: _description_
-        NotImplementedError: _description_
-
-    Returns:
-        _type_: _description_
-    """
+    """Interoperable graph class, based on rdflib.Dataset."""
 
     graph = None
 
@@ -65,13 +33,13 @@ class __Graph__:
 
     xsd_boolean = rdflib.URIRef("http://www.w3.org/2001/XMLSchema#boolean")
 
-    default_format = mime["trig"]
+    default_format = rdf_alias_to_media_type["trig"]
 
     supports_named_graphs = True
 
     @staticmethod
-    def _get_rdf_format(format: str):
-        return get_rdf_mime_type(format)
+    def _get_rdf_media_type(format: str):
+        return get_rdf_media_type(format)
 
     def __init__(self, data=None, format=None, max_path=2048):
         """Initialize graph object
@@ -126,12 +94,10 @@ class __Graph__:
 
     def parse_file(self, file_path, format=None):
         if format == None:
-            ext = os.path.splitext(file_path)[1][1:]
-            if ext not in file_ext:
+            format = mimetypes.guess_type(file_path)[0]
+            if format not in rdf_media_types:
                 raise ValueError("File specified not recognized as a valid RDF file. ")
-            self._parse_file(file_path, format=file_ext[ext])
-        else:
-            self._parse_file(file_path, format=format)
+        self._parse_file(file_path, format=format)
         return self
 
     def serialize(self, path=None, format=None):
@@ -262,7 +228,7 @@ class OxRdfLibGraph(RdfLibGraph):
     Literal = rdflib.Literal
     Variable = rdflib.Variable
 
-    default_format = mime["trig"]
+    default_format = rdf_alias_to_media_type["trig"]
 
     supports_named_graphs = True
     """Inheriting methods from RdfLibGraph"""
@@ -278,7 +244,7 @@ class OxRdfLibGraph(RdfLibGraph):
 class OxiGraph(__Graph__):
     graph_class = pyoxigraph.Store
 
-    default_format = mime["trig"]
+    default_format = rdf_alias_to_media_type["trig"]
 
     BlankNode = pyoxigraph.BlankNode
     NamedNode = pyoxigraph.NamedNode
@@ -293,20 +259,9 @@ class OxiGraph(__Graph__):
     supports_named_graphs = True
 
     @staticmethod
-    def _get_rdf_format(format_str):
-        """Convert MIME type string to pyoxigraph.RdfFormat object"""
-        format_map = {
-            "application/trig": pyoxigraph.RdfFormat.TRIG,
-            "application/n-quads": pyoxigraph.RdfFormat.N_QUADS,
-            "application/n-triples": pyoxigraph.RdfFormat.N_TRIPLES,
-            "text/turtle": pyoxigraph.RdfFormat.TURTLE,
-            "text/n3": pyoxigraph.RdfFormat.N3,
-            "application/rdf+xml": pyoxigraph.RdfFormat.RDF_XML,
-            "application/ld+json": pyoxigraph.RdfFormat.JSON_LD,
-        }
-        return format_map.get(
-            format_str, pyoxigraph.RdfFormat.from_media_type(format_str)
-        )
+    def _get_rdf_media_type(format_str):
+        """Convert media type string to pyoxigraph.RdfFormat object"""
+        return pyoxigraph.RdfFormat.from_media_type(get_rdf_media_type(format_str))
 
     def __contains__(self, item):
         iter = self.quads(item)
@@ -318,21 +273,21 @@ class OxiGraph(__Graph__):
 
     def _parse(self, data, format):
         input = io.StringIO(data)
-        self.graph.load(input, self._get_rdf_format(format))
+        self.graph.load(input, self._get_rdf_media_type(format))
         return self
 
     def _parse_file(self, path, format):
-        self.graph.load(path=path, format=self._get_rdf_format(format))
+        self.graph.load(path=path, format=self._get_rdf_media_type(format))
         return self
 
     def serialize(self, path=None, format=None):
         if format == None:
             format = self.default_format
 
-        rdf_format = self._get_rdf_format(format)
+        rdf_format = self._get_rdf_media_type(format)
 
         # For triple-only formats like Turtle, we need to specify from_graph
-        from_graph = pyoxigraph.DefaultGraph() if format in triple_mime_types else None
+        from_graph = pyoxigraph.DefaultGraph() if format in triple_media_types else None
 
         if path:
             self.graph.dump(path, format=rdf_format, from_graph=from_graph)

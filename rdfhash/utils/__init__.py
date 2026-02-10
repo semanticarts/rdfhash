@@ -1,39 +1,62 @@
 import re
+import mimetypes
 
 from .hash import hash_types
 
-triple_mime_types = {
-    "text/turtle",
-    "application/n-triples",
-}
+mimetypes.add_type("text/turtle", ".ttl")
+mimetypes.add_type("application/n-triples", ".nt")
+mimetypes.add_type("application/trig", ".trig")
+mimetypes.add_type("application/n-quads", ".nq")
+mimetypes.add_type("application/rdf+xml", ".rdf")
+mimetypes.add_type("text/n3", ".n3")
 
-rdf_ext_to_mime_types = {
-    "ttl": "text/turtle",
-    "nt": "application/n-triples",
-    "trig": "application/trig",
-    "nq": "application/n-quads",
-    "rdf": "application/rdf+xml",
-}
-rdf_mime_types = {
+#: Supported RDF media types.
+rdf_media_types = {
     "text/turtle",
     "application/n-triples",
     "application/trig",
     "application/n-quads",
     "application/rdf+xml",
+    "text/n3",
+}
+
+#: Triple-based RDF media types.
+triple_media_types = {
+    "text/turtle",
+    "application/n-triples",
+}
+
+#: RDF file type names to RDF media types.
+rdf_alias_to_media_type = {
+    "nquads": "application/n-quads",
+    "ntriples": "application/n-triples",
+    "turtle": "text/turtle",
+    "xml": "application/rdf+xml",
+    # Associate file extensions (without the leading dot) with RDF media types.
+    **{mimetypes.guess_extension(mt)[1:]: mt for mt in rdf_media_types},
 }
 
 
-def get_rdf_mime_type(format: str):
+def get_rdf_media_type(format: str):
+    """Convert a simplified RDF format string or media type to a supported RDF media type.
+
+    Args:
+        format (str): Simplified string or media type.
+
+    Raises:
+        ValueError: If 'format' is not related to a supported RDF media type.
+    """
     format = format.lower()
-    mime_type = rdf_ext_to_mime_types.get(format, format)
-    if mime_type not in rdf_mime_types:
+    media_type = rdf_alias_to_media_type.get(format, format)
+    if media_type not in rdf_media_types:
         raise ValueError(
-            "Invalid RDF format: {format}. Must be one of {rdf_mime_types}.".format(
-                format=format, rdf_mime_types=rdf_mime_types
-            )
+            f"Invalid RDF format: {format}. Must be one of {rdf_media_types}."
         )
+    return media_type
 
 
+# TODO: Determine if this function is needed.
+# I believe it's only used for converting hashed IRIs back to blank nodes.
 def validate_uri(
     uri,
     template="{method}:{value}",

@@ -15,7 +15,7 @@ hash: a owl:Ontology ;
     rdfs:label "`rdfhash` Ontology" ;
     rdfs:comment "Ontology for `rdfhash` tool." ;
     owl:versionInfo "0.0.1" ;
-    rdfs:seeAlso <http://rdfhash.com/>, <https://github.com/NeilGraham/rdfhash> ;
+    rdfs:seeAlso <http://rdfhash.com/>, <https://github.com/semanticarts/rdfhash> ;
     dcterms:creator <https://github.com/NeilGraham> ;
     dcterms:created "2023-06-22"^^xsd:date ;
     .
