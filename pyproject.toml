@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "rdfhash"
-version = "0.4.7"
+version = "0.5.0"
 description = "De-duplicate RDF triples w/ a SPARQL query. Subjects taken from SELECT are replaced by the hash of their triples '{predicate} {object}.\n' pairs sorted."
 readme = "README.md"
 license = {file = "LICENSE.txt"}
